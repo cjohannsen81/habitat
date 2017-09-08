@@ -331,4 +331,49 @@ export class BuilderApiClient {
             });
         });
     }
+
+    public getDockerHubCredentials(originName: string) {
+        return new Promise((resolve, reject) => {
+            fetch(`${this.urlPrefix}/depot/origins/${originName}/integrations/docker`, {
+                headers: this.headers,
+            }).then(response => {
+                if (response.ok) {
+                    resolve(response.json());
+                } else {
+                    reject(new Error(response.statusText));
+                }
+            }).catch(error => reject(error));
+        });
+    }
+
+    public addDockerHubCredentials(originName: string, credentials) {
+        return new Promise((resolve, reject) => {
+            fetch(`${this.urlPrefix}/depot/origins/${originName}/integrations/docker`, {
+                headers: this.headers,
+                method: "PUT",
+                body: JSON.stringify(credentials)
+            }).then(response => {
+                if (response.ok) {
+                    resolve(response.json());
+                } else {
+                    reject(new Error(response.statusText));
+                }
+            }).catch(error => reject(error));
+        });
+    }
+
+    public deleteDockerHubCredentials(originName: string) {
+        return new Promise((resolve, reject) => {
+            fetch(`${this.urlPrefix}/depot/origins/${originName}/integrations/docker`, {
+                headers: this.headers,
+                method: "DELETE",
+            }).then(response => {
+                if (response.ok) {
+                    resolve(response.json());
+                } else {
+                    reject(new Error(response.statusText));
+                }
+            }).catch(error => reject(error));
+        });
+    }
 }

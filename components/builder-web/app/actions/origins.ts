@@ -23,6 +23,7 @@ export const POPULATE_MY_ORIGIN_INVITATIONS = "POPULATE_MY_ORIGIN_INVITATIONS";
 export const POPULATE_ORIGIN_INVITATIONS = "POPULATE_ORIGIN_INVITATIONS";
 export const POPULATE_ORIGIN_MEMBERS = "POPULATE_ORIGIN_MEMBERS";
 export const POPULATE_ORIGIN_PUBLIC_KEYS = "POPULATE_ORIGIN_PUBLIC_KEYS";
+export const POPULATE_ORIGIN_INTEGRATIONS = "POPULATE_ORIGIN_INTEGRATIONS";
 export const SET_CURRENT_ORIGIN = "SET_CURRENT_ORIGIN";
 export const SET_CURRENT_ORIGIN_CREATING_FLAG =
     "SET_CURRENT_ORIGIN_CREATING_FLAG";
@@ -37,6 +38,8 @@ export const SET_ORIGIN_PUBLIC_KEY_UPLOAD_ERROR_MESSAGE =
     "SET_ORIGIN_PUBLIC_KEY_UPLOAD_ERROR_MESSAGE";
 export const SET_ORIGIN_USER_INVITE_ERROR_MESSAGE =
     "SET_ORIGIN_USER_INVITE_ERROR_MESSAGE";
+export const SET_ORIGIN_INTEGRATION_SAVE_ERROR_MESSAGE =
+    "SET_ORIGIN_INTEGRATION_SAVE_ERROR_MESSAGE";
 export const TOGGLE_ORIGIN_PICKER = "TOGGLE_ORIGIN_PICKER";
 export const SET_PACKAGE_COUNT_FOR_ORIGIN = "SET_PACKAGE_COUNT_FOR_ORIGIN";
 export const SET_ORIGIN_PRIVACY_SETTINGS = "SET_ORIGIN_PRIVACY_SETTINGS";
@@ -166,6 +169,29 @@ export function inviteUserToOrigin(username: string, origin: string, token: stri
     };
 }
 
+
+export function addDockerHubCredentials(credentials, origin: string, token: string) {
+    return dispatch => {
+        new BuilderApiClient(token).addDockerHubCredentials(origin, credentials).
+            then(response => {
+                dispatch(fetchIntegrations(origin, token));
+            }).catch(error => {
+                dispatch(setOriginIntegrationSaveErrorMessage(error.message));
+            });
+    };
+}
+
+export function fetchIntegrations(origin: string, token: string) {
+    return dispatch => {
+        new BuilderApiClient(token).getDockerHubCredentials(origin).
+            then(response => {
+                dispatch(populateIntegrations(response));
+            }).catch(error => {
+                dispatch(populateIntegrations(undefined, error.message));
+            });
+    };
+}
+
 export function setOriginPrivacySettings(privacySetting) {
     return dispatch => {
         // ED TODO: Add API call here to set new origin privacy settings when it's implemented
@@ -228,6 +254,14 @@ function populateOriginPublicKeys(payload, error = undefined) {
     };
 }
 
+function populateIntegrations(payload, error = undefined) {
+    return {
+        type: POPULATE_ORIGIN_INTEGRATIONS,
+        payload,
+        error
+    };
+}
+
 export function setCurrentOrigin(payload, error = undefined) {
     return {
         type: SET_CURRENT_ORIGIN,
@@ -267,6 +301,13 @@ function setOriginPublicKeyUploadErrorMessage(payload: string) {
 function setOriginUserInviteErrorMessage(payload: string) {
     return {
         type: SET_ORIGIN_USER_INVITE_ERROR_MESSAGE,
+        payload,
+    };
+}
+
+function setOriginIntegrationSaveErrorMessage(payload: string) {
+    return {
+        type: SET_ORIGIN_INTEGRATION_SAVE_ERROR_MESSAGE,
         payload,
     };
 }

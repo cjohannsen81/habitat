@@ -56,6 +56,10 @@ export default function origins(state = initialState["origins"], action) {
             return state.setIn(["currentMembers"],
                 List(action.payload));
 
+        case actionTypes.POPULATE_ORIGIN_INTEGRATIONS:
+            return state.setIn(["currentIntegrations"],
+                List(action.payload));
+
         case actionTypes.POPULATE_ORIGIN_PUBLIC_KEYS:
             if (action.error) {
                 return state.setIn(
@@ -104,6 +108,10 @@ export default function origins(state = initialState["origins"], action) {
 
         case actionTypes.SET_ORIGIN_PUBLIC_KEY_UPLOAD_ERROR_MESSAGE:
             return state.setIn(["ui", "current", "publicKeyErrorMessage"],
+                action.payload);
+
+        case actionTypes.SET_ORIGIN_INTEGRATION_SAVE_ERROR_MESSAGE:
+            return state.setIn(["ui", "current", "integrationsSaveErrorMessage"],
                 action.payload);
 
         case actionTypes.SET_ORIGIN_USER_INVITE_ERROR_MESSAGE:

@@ -14,15 +14,15 @@
 
 import { Component } from "@angular/core";
 import { AppStore } from "../../../AppStore";
-import { setOriginPrivacySettings } from "../../../actions/index";
+import { setOriginPrivacySettings } from "../../../actions";
 import { MdDialog, MdDialogRef } from "@angular/material";
 import { DockerCredentialsFormDialog } from "../docker-credentials-form/docker-credentials-form.dialog";
 @Component({
     selector: "hab-origin-settings-tab",
-    template: require("./origin-settings-tab.component.html")
+    template: require("./origin-integrations-tab.component.html")
 })
 
-export class OriginSettingsTabComponent {
+export class OriginIntegrationsTabComponent {
   constructor(private store: AppStore, private dialog: MdDialog) {}
 
   get originPrivacy() {
@@ -31,6 +31,11 @@ export class OriginSettingsTabComponent {
 
   updatePrivacy(event) {
     this.store.dispatch(setOriginPrivacySettings(event.value));
+  }
+
+  get integrations() {
+    console.log(this.store.getState().origin.currentIntegrations);
+    return this.store.getState().origin.currentIntegrations;
   }
 
   openDialog(): void {

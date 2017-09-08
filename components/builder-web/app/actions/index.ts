@@ -58,6 +58,8 @@ export const POPULATE_ORIGIN_MEMBERS =
     originActions.POPULATE_ORIGIN_MEMBERS;
 export const POPULATE_ORIGIN_PUBLIC_KEYS =
     originActions.POPULATE_ORIGIN_PUBLIC_KEYS;
+export const POPULATE_ORIGIN_INTEGRATIONS =
+    originActions.POPULATE_ORIGIN_INTEGRATIONS;
 export const SET_CURRENT_ORIGIN = originActions.SET_CURRENT_ORIGIN;
 export const SET_CURRENT_ORIGIN_CREATING_FLAG =
     originActions.SET_CURRENT_ORIGIN_CREATING_FLAG;
@@ -73,6 +75,8 @@ export const SET_ORIGIN_PUBLIC_KEY_UPLOAD_ERROR_MESSAGE =
     originActions.SET_ORIGIN_PUBLIC_KEY_UPLOAD_ERROR_MESSAGE;
 export const SET_ORIGIN_USER_INVITE_ERROR_MESSAGE =
     originActions.SET_ORIGIN_USER_INVITE_ERROR_MESSAGE;
+export const SET_ORIGIN_INTEGRATION_SAVE_ERROR_MESSAGE =
+    originActions.SET_ORIGIN_INTEGRATION_SAVE_ERROR_MESSAGE;
 export const TOGGLE_ORIGIN_PICKER = originActions.TOGGLE_ORIGIN_PICKER;
 export const SET_ORIGIN_PRIVACY_SETTINGS = originActions.SET_ORIGIN_PRIVACY_SETTINGS;
 
@@ -151,6 +155,8 @@ export const setCurrentOrigin = originActions.setCurrentOrigin;
 export const uploadOriginPrivateKey = originActions.uploadOriginPrivateKey;
 export const uploadOriginPublicKey = originActions.uploadOriginPublicKey;
 export const setOriginPrivacySettings = originActions.setOriginPrivacySettings;
+export const addDockerHubCredentials = originActions.addDockerHubCredentials;
+export const fetchIntegrations = originActions.fetchIntegrations;
 
 export const fetchDashboardRecent = packageActions.fetchDashboardRecent;
 export const fetchExplore = packageActions.fetchExplore;
