@@ -37,7 +37,7 @@ export class PackagePlanSelectComponent implements OnInit {
   form: FormGroup;
   formIndex: number = 0;
   onRepoSelect: Function;
-  plans: Array < GitHubFile > ;
+  plans: Array <GitHubFile>;
   errorText: string;
 
   disablePlanSelectTab: boolean = true;

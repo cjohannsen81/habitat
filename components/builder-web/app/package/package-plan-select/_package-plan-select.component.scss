@@ -30,7 +30,36 @@
 .hab-tab-progress {
   .mat-tab-labels {
     background: $hab-blue;
-    padding: 5px 15px;
+    padding: 5px 10px;
     border-radius: 2px;
+
+  }
+
+  .mat-tab-label {
+    height: auto;
+    padding: 0px;
+    color: $white;
+    opacity: 1;
+
+    &.mat-tab-label-active, &:hover {
+      font-weight: bold;
+    }
+
+    &:after {
+      content: '→';
+      padding: 0px 15px;
+      display: inline-block;
+    }
+
+    &.mat-tab-disabled {
+      opacity: .6;
+    }
+
+    &:last-child:after { display: none; }
+  }
+
+  .mat-ink-bar {
+    display: none;
   }
 }
+
