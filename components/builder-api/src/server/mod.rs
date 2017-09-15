@@ -58,12 +58,15 @@ impl HttpGateway for ApiSrv {
 
     fn router(config: Arc<Self::Config>) -> Router {
         let basic = Authenticated::new(&*config);
+        let mut opt = basic.clone();
+        opt.optional();
+
         router!(
             status: get "/status" => status,
             authenticate: get "/authenticate/:code" => github_authenticate,
 
             jobs: post "/jobs" => XHandler::new(job_create).before(basic.clone()),
-            job: get "/jobs/:id" => job_show,
+            job: get "/jobs/:id" => XHandler::new(job_show).before(opt.clone()),
             job_log: get "/jobs/:id/log" => job_log,
             job_group_promote: post "/jobs/group/:id/promote/:channel" => {
                 XHandler::new(job_group_promote).before(basic.clone())
@@ -83,7 +86,7 @@ impl HttpGateway for ApiSrv {
             // other origins at the moment.
             projects: post "/projects" => XHandler::new(project_create).before(basic.clone()),
             project: get "/projects/:origin/:name" => project_show,
-            project_jobs: get "/projects/:origin/:name/jobs" => project_jobs,
+            project_jobs: get "/projects/:origin/:name/jobs" => XHandler::new(project_jobs).before(opt.clone()),
             edit_project: put "/projects/:origin/:name" => {
                 XHandler::new(project_update).before(basic.clone())
             },

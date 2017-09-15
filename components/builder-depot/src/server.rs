@@ -941,6 +941,12 @@ fn download_latest_origin_key(req: &mut Request) -> IronResult<Response> {
 }
 
 fn package_channels(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let mut request = OriginPackageChannelListRequest::new();
     {
         let params = req.extensions.get::<Router>().unwrap();
@@ -950,6 +956,9 @@ fn package_channels(req: &mut Request) -> IronResult<Response> {
             return Ok(Response::with(status::BadRequest));
         }
         request.set_ident(ident);
+    }
+    if session_id.is_some() {
+        request.set_account_id(session_id.unwrap());
     }
     match route_message::<OriginPackageChannelListRequest, OriginPackageChannelListResponse>(
         req,
@@ -975,11 +984,20 @@ fn download_package(req: &mut Request) -> IronResult<Response> {
         "depot not found",
     );
     let depot = lock.read().expect("depot read lock is poisoned");
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let mut ident_req = OriginPackageGet::new();
     {
         let params = req.extensions.get::<Router>().unwrap();
         ident_req.set_ident(ident_from_params(params));
     };
+    if session_id.is_some() {
+        ident_req.set_account_id(session_id.unwrap());
+    }
     let agent_target = target_from_headers(&req.headers.get::<UserAgent>().unwrap()).unwrap();
     if !depot.config.targets.contains(&agent_target) {
         error!(
@@ -1072,6 +1090,12 @@ fn list_origin_keys(req: &mut Request) -> IronResult<Response> {
 }
 
 fn list_unique_packages(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let mut request = OriginPackageUniqueListRequest::new();
     let (start, stop) = match helpers::extract_pagination(req) {
         Ok(range) => range,
@@ -1079,6 +1103,9 @@ fn list_unique_packages(req: &mut Request) -> IronResult<Response> {
     };
     request.set_start(start as u64);
     request.set_stop(stop as u64);
+    if session_id.is_some() {
+        request.set_account_id(session_id.unwrap());
+    }
     {
         let params = req.extensions.get::<Router>().unwrap();
         match params.find("origin") {
@@ -1133,6 +1160,12 @@ fn list_unique_packages(req: &mut Request) -> IronResult<Response> {
 }
 
 fn list_package_versions(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let (origin, name) = {
         let params = req.extensions.get::<Router>().unwrap();
 
@@ -1154,6 +1187,9 @@ fn list_package_versions(req: &mut Request) -> IronResult<Response> {
     let mut request = OriginPackageVersionListRequest::new();
     request.set_origin(origin);
     request.set_name(name);
+    if session_id.is_some() {
+        request.set_account_id(session_id.unwrap());
+    }
     packages = route_message::<OriginPackageVersionListRequest, OriginPackageVersionListResponse>(
         req,
         &request,
@@ -1186,6 +1222,12 @@ fn list_package_versions(req: &mut Request) -> IronResult<Response> {
 }
 
 fn list_packages(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let mut distinct = false;
     let (start, stop) = match helpers::extract_pagination(req) {
         Ok(range) => range,
@@ -1221,6 +1263,9 @@ fn list_packages(req: &mut Request) -> IronResult<Response> {
             request.set_name(channel);
             request.set_start(start as u64);
             request.set_stop(stop as u64);
+            if session_id.is_some() {
+                request.set_account_id(session_id.unwrap());
+            }
             request.set_ident(OriginPackageIdent::from_str(ident.as_str()).expect(
                 "invalid package identifier",
             ));
@@ -1234,6 +1279,9 @@ fn list_packages(req: &mut Request) -> IronResult<Response> {
             let mut request = OriginPackageListRequest::new();
             request.set_start(start as u64);
             request.set_stop(stop as u64);
+            if session_id.is_some() {
+                request.set_account_id(session_id.unwrap());
+            }
 
             // only set this if "distinct" is present as a URL parameter, e.g. ?distinct=true
             if helpers::extract_query_value("distinct", req).is_some() {
@@ -1270,8 +1318,8 @@ fn list_packages(req: &mut Request) -> IronResult<Response> {
                 let mut platforms: Option<Vec<String>> = None;
 
                 if !distinct {
-                    channels = helpers::channels_for_package_ident(req, &package);
-                    platforms = helpers::platforms_for_package_ident(req, &package);
+                    channels = helpers::channels_for_package_ident(req, &package, session_id);
+                    platforms = helpers::platforms_for_package_ident(req, &package, session_id);
                 }
 
                 let mut pkg_json = serde_json::to_value(package).unwrap();
@@ -1435,6 +1483,12 @@ fn delete_channel(req: &mut Request) -> IronResult<Response> {
 }
 
 fn show_package(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let (mut ident, channel) = {
         let params = req.extensions.get::<Router>().unwrap();
 
@@ -1463,6 +1517,9 @@ fn show_package(req: &mut Request) -> IronResult<Response> {
             request.set_name(channel.clone());
             request.set_ident(ident);
             request.set_target(target);
+            if session_id.is_some() {
+                request.set_account_id(session_id.unwrap());
+            }
             match route_message::<OriginChannelPackageLatestGet, OriginPackageIdent>(
                 req,
                 &request,
@@ -1483,8 +1540,11 @@ fn show_package(req: &mut Request) -> IronResult<Response> {
         let mut request = OriginChannelPackageGet::new();
         request.set_name(channel);
         request.set_ident(ident);
+        if session_id.is_some() {
+            request.set_account_id(session_id.unwrap());
+        }
         match route_message::<OriginChannelPackageGet, OriginPackage>(req, &request) {
-            Ok(pkg) => render_package(req, &pkg, false),
+            Ok(pkg) => render_package(req, &pkg, false, session_id),
             Err(err) => {
                 match err.get_code() {
                     ErrCode::ENTITY_NOT_FOUND => Ok(Response::with((status::NotFound))),
@@ -1503,6 +1563,9 @@ fn show_package(req: &mut Request) -> IronResult<Response> {
             let mut request = OriginPackageLatestGet::new();
             request.set_ident(ident);
             request.set_target(target);
+            if session_id.is_some() {
+                request.set_account_id(session_id.unwrap());
+            }
             match route_message::<OriginPackageLatestGet, OriginPackageIdent>(req, &request) {
                 Ok(id) => ident = id.into(),
                 Err(err) => {
@@ -1519,14 +1582,17 @@ fn show_package(req: &mut Request) -> IronResult<Response> {
 
         let mut request = OriginPackageGet::new();
         request.set_ident(ident);
+        if session_id.is_some() {
+            request.set_account_id(session_id.unwrap());
+        }
         match route_message::<OriginPackageGet, OriginPackage>(req, &request) {
             Ok(pkg) => {
                 // If the request was for a fully qualified ident, cache the response, otherwise do
                 // not cache
                 if qualified {
-                    render_package(req, &pkg, true)
+                    render_package(req, &pkg, true, session_id)
                 } else {
-                    render_package(req, &pkg, false)
+                    render_package(req, &pkg, false, session_id)
                 }
             }
             Err(err) => {
@@ -1543,6 +1609,12 @@ fn show_package(req: &mut Request) -> IronResult<Response> {
 }
 
 fn search_packages(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let mut request = OriginPackageSearchRequest::new();
     let (start, stop) = match helpers::extract_pagination(req) {
         Ok(range) => range,
@@ -1550,7 +1622,9 @@ fn search_packages(req: &mut Request) -> IronResult<Response> {
     };
     request.set_start(start as u64);
     request.set_stop(stop as u64);
-
+    if session_id.is_some() {
+        request.set_account_id(session_id.unwrap());
+    }
 
     // First, try to parse the query like it's a PackageIdent, since it seems reasonable to expect
     // that many people will try searching using that kind of string, e.g. core/redis.  If that
@@ -1636,9 +1710,10 @@ fn render_package(
     req: &mut Request,
     pkg: &OriginPackage,
     should_cache: bool,
+    session_id: Option<u64>,
 ) -> IronResult<Response> {
     let mut pkg_json = serde_json::to_value(pkg.clone()).unwrap();
-    let channels = helpers::channels_for_package_ident(req, pkg.get_ident());
+    let channels = helpers::channels_for_package_ident(req, pkg.get_ident(), session_id);
     pkg_json["channels"] = json!(channels);
     pkg_json["is_a_service"] = json!(is_a_service(req, pkg.get_ident()));
 
@@ -1750,6 +1825,7 @@ fn demote_package(req: &mut Request) -> IronResult<Response> {
 
             let mut request = OriginPackageGet::new();
             request.set_ident(ident.clone());
+            request.set_account_id(session_id);
             match route_message::<OriginPackageGet, OriginPackage>(req, &request) {
                 Ok(package) => {
                     let mut demote = OriginPackageDemote::new();
@@ -1903,21 +1979,36 @@ fn dont_cache_response(response: &mut Response) {
     ));
 }
 
-pub fn routes<M>(insecure: bool, basic: M, worker: M) -> Router
+pub fn routes<M>(insecure: bool, basic: Authenticated, worker: M) -> Router
 where
     M: BeforeMiddleware + Clone,
 {
+    let mut opt = basic.clone();
+    opt.optional();
+
     router!(
         channels: get "/channels/:origin" => list_channels,
-        channel_packages: get "/channels/:origin/:channel/pkgs" => list_packages,
-        channel_packages_pkg: get "/channels/:origin/:channel/pkgs/:pkg" => list_packages,
-        channel_package_latest: get "/channels/:origin/:channel/pkgs/:pkg/latest" => show_package,
+        channel_packages: get "/channels/:origin/:channel/pkgs" => {
+            XHandler::new(list_packages).before(opt.clone())
+        },
+        channel_packages_pkg: get "/channels/:origin/:channel/pkgs/:pkg" => {
+            XHandler::new(list_packages).before(opt.clone())
+        },
+        channel_package_latest: get "/channels/:origin/:channel/pkgs/:pkg/latest" => {
+            XHandler::new(show_package).before(opt.clone())
+        },
         channel_packages_version: get
-            "/channels/:origin/:channel/pkgs/:pkg/:version" => list_packages,
+        "/channels/:origin/:channel/pkgs/:pkg/:version" => {
+            XHandler::new(list_packages).before(opt.clone())
+        },
         channel_packages_version_latest: get
-            "/channels/:origin/:channel/pkgs/:pkg/:version/latest" => show_package,
+        "/channels/:origin/:channel/pkgs/:pkg/:version/latest" => {
+            XHandler::new(show_package).before(opt.clone())
+        },
         channel_package_release: get
-            "/channels/:origin/:channel/pkgs/:pkg/:version/:release" => show_package,
+        "/channels/:origin/:channel/pkgs/:pkg/:version/:release" => {
+            XHandler::new(show_package).before(opt.clone())
+        },
         channel_package_promote: put
             "/channels/:origin/:channel/pkgs/:pkg/:version/:release/promote" => {
             XHandler::new(promote_package).before(basic.clone())
@@ -1932,17 +2023,39 @@ where
         channel_delete: delete "/channels/:origin/:channel" => {
             XHandler::new(delete_channel).before(basic.clone())
         },
-        package_search: get "/pkgs/search/:query" => search_packages,
-        packages: get "/pkgs/:origin" => list_packages,
-        packages_unique: get "/:origin/pkgs" => list_unique_packages,
-        packages_pkg: get "/pkgs/:origin/:pkg" => list_packages,
-        package_pkg_versions: get "/pkgs/:origin/:pkg/versions" => list_package_versions,
-        package_pkg_latest: get "/pkgs/:origin/:pkg/latest" => show_package,
-        packages_version: get "/pkgs/:origin/:pkg/:version" => list_packages,
-        package_version_latest: get "/pkgs/:origin/:pkg/:version/latest" => show_package,
-        package: get "/pkgs/:origin/:pkg/:version/:release" => show_package,
-        package_channels: get "/pkgs/:origin/:pkg/:version/:release/channels" => package_channels,
-        package_download: get "/pkgs/:origin/:pkg/:version/:release/download" => download_package,
+        package_search: get "/pkgs/search/:query" => {
+            XHandler::new(search_packages).before(opt.clone())
+        },
+        packages: get "/pkgs/:origin" => {
+            XHandler::new(list_packages).before(opt.clone())
+        },
+        packages_unique: get "/:origin/pkgs" => {
+            XHandler::new(list_unique_packages).before(opt.clone())
+        },
+        packages_pkg: get "/pkgs/:origin/:pkg" => {
+            XHandler::new(list_packages).before(opt.clone())
+        },
+        package_pkg_versions: get "/pkgs/:origin/:pkg/versions" => {
+            XHandler::new(list_package_versions).before(opt.clone())
+        },
+        package_pkg_latest: get "/pkgs/:origin/:pkg/latest" => {
+            XHandler::new(show_package).before(opt.clone())
+        },
+        packages_version: get "/pkgs/:origin/:pkg/:version" => {
+            XHandler::new(list_packages).before(opt.clone())
+        },
+        package_version_latest: get "/pkgs/:origin/:pkg/:version/latest" => {
+            XHandler::new(show_package).before(opt.clone())
+        },
+        package: get "/pkgs/:origin/:pkg/:version/:release" => {
+            XHandler::new(show_package).before(opt.clone())
+        },
+        package_channels: get "/pkgs/:origin/:pkg/:version/:release/channels" => {
+            XHandler::new(package_channels).before(opt.clone())
+        },
+        package_download: get "/pkgs/:origin/:pkg/:version/:release/download" => {
+            XHandler::new(download_package).before(opt.clone())
+        },
         package_upload: post "/pkgs/:origin/:pkg/:version/:release" => {
             if insecure {
                 XHandler::new(upload_package)

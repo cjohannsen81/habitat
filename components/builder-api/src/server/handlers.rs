@@ -209,6 +209,12 @@ pub fn job_create(req: &mut Request) -> IronResult<Response> {
 }
 
 pub fn job_show(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let mut request = JobGet::new();
     {
         let params = req.extensions.get::<Router>().unwrap();
@@ -223,8 +229,10 @@ pub fn job_show(req: &mut Request) -> IronResult<Response> {
     match route_message::<JobGet, Job>(req, &request) {
         Ok(job) => {
             if job.get_package_ident().fully_qualified() {
-                let channels = helpers::channels_for_package_ident(req, job.get_package_ident());
-                let platforms = helpers::platforms_for_package_ident(req, job.get_package_ident());
+                let channels =
+                    helpers::channels_for_package_ident(req, job.get_package_ident(), session_id);
+                let platforms =
+                    helpers::platforms_for_package_ident(req, job.get_package_ident(), session_id);
                 let mut job_json = serde_json::to_value(job).unwrap();
 
                 if channels.is_some() {
@@ -618,6 +626,12 @@ pub fn project_show(req: &mut Request) -> IronResult<Response> {
 
 /// Retrieve the most recent 50 jobs for a project.
 pub fn project_jobs(req: &mut Request) -> IronResult<Response> {
+    let session_id = {
+        match req.extensions.get::<Authenticated>() {
+            Some(session) => Some(session.get_id()),
+            None => None,
+        }
+    };
     let mut jobs_get = ProjectJobsGet::new();
     {
         let params = req.extensions.get::<Router>().unwrap();
@@ -646,10 +660,16 @@ pub fn project_jobs(req: &mut Request) -> IronResult<Response> {
                 .get_jobs()
                 .iter()
                 .map(|job| if job.get_state() == JobState::Complete {
-                    let channels =
-                        helpers::channels_for_package_ident(req, &job.get_package_ident());
-                    let platforms =
-                        helpers::platforms_for_package_ident(req, &job.get_package_ident());
+                    let channels = helpers::channels_for_package_ident(
+                        req,
+                        &job.get_package_ident(),
+                        session_id,
+                    );
+                    let platforms = helpers::platforms_for_package_ident(
+                        req,
+                        &job.get_package_ident(),
+                        session_id,
+                    );
                     let mut job_json = serde_json::to_value(job).unwrap();
 
                     if channels.is_some() {
