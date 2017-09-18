@@ -31,18 +31,17 @@ To define a hook, simply create a bash file of the same name in `/my_plan_name/h
 : File location: `<plan>/hooks/health_check`
 : This hook is run when the Habitat HTTP API receives a request at `/health`.
 
-  The `health_check` script must return a valid exit code from the list below.
+**health_check** : File location: `<plan>/hooks/health_check`
 
-  - **0**- ok
-  - **1**- warning
-  - **2**- critical
-  - **3**- unknown
-  - any other code - failed health check with additional output taken from `health_check` stdout.
+This hook is run when the Habitat HTTP API receives a request at `/health`.
 
-  A `health_check` hook can use the following as a template:
+The `health_check` script must return a valid exit code from the list below.
 
-  ~~~ bash
-  #!/bin/sh
+- **0**- ok
+- **1**- warning
+- **2**- critical
+- **3**- unknown
+- any other code - failed health check with additional output taken from `health_check` stdout.
 
   # define default return code as 0
   rc=0
@@ -79,7 +78,7 @@ For processes that can update their configuration without requiring a restart a 
 ###suitability
 : File location: `<plan>/hooks/suitability`
 
-  The suitability hook allows a service to report a priority by which it should be elected leader. The hook is called when a new election is triggered and the last line it outputs to `stdout` should be a number parsable as a `u64`. In the event that a leader goes down and an election is started the service with the highest reported suitabilty will become the new leader.
+  The suitability hook allows a service to report a priority by which it should be elected leader. The hook is called when a new election is triggered and the last line it outputs to `stdout` should be a number parsable as a `u64`. In the event that a leader goes down and an election is started, the service with the highest reported suitabilty will become the new leader.
 
 ###run
 : File location: `<plan>/hooks/run`
