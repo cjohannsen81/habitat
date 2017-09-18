@@ -549,6 +549,37 @@ fn upload_origin_secret_key(req: &mut Request) -> IronResult<Response> {
 }
 
 fn upload_package(req: &mut Request) -> IronResult<Response> {
+    let ident = {
+        let params = req.extensions.get::<Router>().unwrap();
+        ident_from_params(params)
+    };
+
+    if !ident.valid() || !ident.fully_qualified() {
+        info!(
+            "Invalid or not fully qualified package identifier: {}",
+            ident
+        );
+        return Ok(Response::with(status::BadRequest));
+    }
+
+    let session_opt = helpers::get_authenticated_session(req);
+
+    // Bypass origin check if caller is a build worker (no session)
+    let session_id = if session_opt.is_some() {
+        let session = session_opt.unwrap();
+        if !check_origin_access(req, session.get_id(), &ident.get_origin())? {
+            debug!(
+                "Failed origin access check, session: {}, ident: {}",
+                session.get_id(),
+                ident
+            );
+            return Ok(Response::with(status::Forbidden));
+        };
+        session.get_id()
+    } else {
+        helpers::builder_session_id()
+    };
+
     let lock = req.get::<persistent::State<DepotUtil>>().expect(
         "depot not found",
     );
@@ -557,37 +588,12 @@ fn upload_package(req: &mut Request) -> IronResult<Response> {
         Some(checksum) => checksum,
         None => return Ok(Response::with(status::BadRequest)),
     };
-    let ident = {
-        let params = req.extensions.get::<Router>().unwrap();
-        ident_from_params(params)
-    };
-
-    if !ident.valid() {
-        info!("Invalid package identifier: {}", ident);
-        return Ok(Response::with(status::BadRequest));
-    }
 
     debug!(
         "UPLOADING checksum={}, ident={}",
         checksum_from_param,
         ident
     );
-
-    // TODO: SA - Eliminate need to clone the session
-    let session = req.extensions.get::<Authenticated>().unwrap().clone();
-    if !depot.config.insecure {
-        if !check_origin_access(req, session.get_id(), &ident.get_origin())? {
-            debug!(
-                "Failed origin access check, session: {}, ident: {}",
-                session.get_id(),
-                ident
-            );
-            return Ok(Response::with(status::Forbidden));
-        }
-        if !ident.fully_qualified() {
-            return Ok(Response::with(status::BadRequest));
-        }
-    }
 
     // Find the path to folder where archive should be created, and
     // create the folder if necessary
@@ -729,7 +735,7 @@ fn upload_package(req: &mut Request) -> IronResult<Response> {
         }
     };
     if ident.satisfies(package.get_ident()) {
-        package.set_owner_id(session.get_id());
+        package.set_owner_id(session_id);
 
         // let's make sure this origin actually exists
         match helpers::get_origin(req, &ident.get_origin()) {
@@ -748,18 +754,6 @@ fn upload_package(req: &mut Request) -> IronResult<Response> {
                 return Ok(Response::with(status::InternalServerError));
             }
         }
-
-        log_event!(
-            req,
-            Event::PackageUpload {
-                origin: ident.get_origin().to_string(),
-                package: ident.get_name().to_string(),
-                version: ident.get_version().to_string(),
-                release: ident.get_release().to_string(),
-                target: target_from_artifact.to_string(),
-                account: session.get_id().to_string(),
-            }
-        );
 
         // Schedule re-build of dependent packages (if requested)
         // Don't schedule builds if the upload is being done by the builder
@@ -1357,9 +1351,12 @@ fn list_channels(req: &mut Request) -> IronResult<Response> {
 }
 
 fn create_channel(req: &mut Request) -> IronResult<Response> {
-    let session_id = {
-        req.extensions.get::<Authenticated>().unwrap().get_id()
+    let session_opt = helpers::get_authenticated_session(req);
+    let session_id_opt = match session_opt {
+        Some(s) => Some(s.get_id()),
+        None => None,
     };
+
     let (origin, channel) = {
         let params = req.extensions.get::<Router>().unwrap();
         let origin = match params.find("origin") {
@@ -1372,7 +1369,8 @@ fn create_channel(req: &mut Request) -> IronResult<Response> {
         };
         (origin, channel)
     };
-    match helpers::create_channel(req, &origin, &channel, Some(session_id)) {
+
+    match helpers::create_channel(req, &origin, &channel, session_id_opt) {
         Ok(origin_channel) => Ok(render_json(status::Created, &origin_channel)),
         Err(err) => Ok(render_net_error(&err)),
     }
@@ -1659,9 +1657,12 @@ fn render_package(
 }
 
 fn promote_package(req: &mut Request) -> IronResult<Response> {
-    let session_id = {
-        req.extensions.get::<Authenticated>().unwrap().get_id()
+    let session_opt = helpers::get_authenticated_session(req);
+    let session_id_opt = match session_opt {
+        Some(s) => Some(s.get_id()),
+        None => None,
     };
+
     let mut ident = OriginPackageIdent::new();
     let channel = {
         let params = req.extensions.get::<Router>().unwrap();
@@ -1688,7 +1689,7 @@ fn promote_package(req: &mut Request) -> IronResult<Response> {
             .unwrap()
             .to_string()
     };
-    match helpers::promote_package_to_channel(req, &ident, &channel, Some(session_id)) {
+    match helpers::promote_package_to_channel(req, &ident, &channel, session_id_opt) {
         Ok(_) => Ok(Response::with(status::Ok)),
         Err(err) => Ok(render_net_error(&err)),
     }
